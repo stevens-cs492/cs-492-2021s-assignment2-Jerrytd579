@@ -1,0 +1,31 @@
+make -C /lib/modules/4.9.0-8-amd64/build M=/home/student/cs-492-2021s-assignment2-Jerrytd579/driver modules
+make[1]: Entering directory '/usr/src/linux-headers-4.9.0-8-amd64'
+  CC [M]  /home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.o
+In file included from /usr/src/linux-headers-4.9.0-8-common/include/linux/module.h:9:0,
+                 from /home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.c:17:
+/home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.c: In function ‘scull_ioctl’:
+/home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.c:100:33: error: ‘LList’ is a pointer; did you mean to use ‘->’?
+   .mylist = LIST_HEAD_INIT(LList.myList)
+                                 ^
+             ->
+/usr/src/linux-headers-4.9.0-8-common/include/linux/list.h:20:34: note: in definition of macro ‘LIST_HEAD_INIT’
+ #define LIST_HEAD_INIT(name) { &(name), &(name) }
+                                  ^~~~
+/home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.c:100:33: error: ‘LList’ is a pointer; did you mean to use ‘->’?
+   .mylist = LIST_HEAD_INIT(LList.myList)
+                                 ^
+             ->
+/usr/src/linux-headers-4.9.0-8-common/include/linux/list.h:20:43: note: in definition of macro ‘LIST_HEAD_INIT’
+ #define LIST_HEAD_INIT(name) { &(name), &(name) }
+                                           ^~~~
+/usr/src/linux-headers-4.9.0-8-common/scripts/Makefile.build:307: recipe for target '/home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.o' failed
+make[4]: *** [/home/student/cs-492-2021s-assignment2-Jerrytd579/driver/scull.o] Error 1
+/usr/src/linux-headers-4.9.0-8-common/Makefile:1528: recipe for target '_module_/home/student/cs-492-2021s-assignment2-Jerrytd579/driver' failed
+make[3]: *** [_module_/home/student/cs-492-2021s-assignment2-Jerrytd579/driver] Error 2
+Makefile:152: recipe for target 'sub-make' failed
+make[2]: *** [sub-make] Error 2
+Makefile:8: recipe for target 'all' failed
+make[1]: *** [all] Error 2
+make[1]: Leaving directory '/usr/src/linux-headers-4.9.0-8-amd64'
+Makefile:25: recipe for target 'modules' failed
+make: *** [modules] Error 2

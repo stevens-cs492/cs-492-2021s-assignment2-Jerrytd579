@@ -24,6 +24,7 @@
 #include <linux/errno.h>	/* error codes */
 #include <linux/types.h>	/* size_t */
 #include <linux/cdev.h>
+#include <linux/mutex.h>	/* Linux mutexes */
 
 #include <linux/uaccess.h>	/* copy_*_user */
 
@@ -33,7 +34,7 @@
 /*
  * Our parameters which can be set at load time.
  */
-
+;
 static int scull_major =   SCULL_MAJOR;
 static int scull_minor =   0;
 static int scull_quantum = SCULL_QUANTUM;
@@ -46,12 +47,23 @@ MODULE_AUTHOR("Wonderful student of CS-492");
 MODULE_LICENSE("Dual BSD/GPL");
 
 static struct cdev scull_cdev;		/* Char device structure		*/
+// New linked list structure:
+struct node {
+	pid_t pid;
+	pid_t tgid;
+	struct list_head myList;
+};
 
+//struct list_head newList = LIST_HEAD_INIT(newList);
+
+// Mutex stuff
+//static DEFINE_MUTEX(cache_lock);
+//static LIST_HEAD(cache);
 
 /*
  * Open and close
  */
-
+;
 static int scull_open(struct inode *inode, struct file *filp)
 {
 	printk(KERN_INFO "scull open\n");
@@ -75,6 +87,21 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 	int err = 0, tmp;
 	int retval = 0;
    	struct task_info t; 
+
+	struct node *LList;
+	LList = kmalloc(sizeof(struct node), GFP_KERNEL);
+
+	if(!LList){
+		printk(KERN_INFO "kmalloc failed\n");
+		return -EFAULT;
+	}
+
+	*LList = (struct node){
+		.pid = current->pid,
+		.tgid = current->tgid,
+		.myList = LIST_HEAD_INIT(LList->myList)
+	};
+	
 	/*
 	 * extract the type and number bitfields, and don't decode
 	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
@@ -144,7 +171,26 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 			.nivcsw		= current->nivcsw
 		};
 		// puts into retval a copy to user
-		retval = copy_to_user(arg, &t, sizeof(t));
+		retval = copy_to_user((struct task_info __user *) arg, &t, sizeof(t));
+
+
+		// Mutexing with critical section
+		mutex_lock(&cache_lock);
+		
+		// Head = null
+		if(head == NULL){
+			// Sets head to current
+			head.pid = t.pid;
+			head.tgid = t.tgid
+		}
+		else{
+			struct Node *tail = &head;
+			struct Node *newNode = (struct Node*)kmallac(sizeof(struct Node), GFP_KERNEL);
+			newNode->pid = t.pid;
+			newNode->tgid = t.tgid;
+		}
+
+		mutex_unlock(&cache_lock);
 		break;
 	  default:  /* redundant, as cmd was checked against MAXNR */
 		return -ENOTTY;
@@ -179,6 +225,9 @@ void scull_cleanup_module(void)
 
 	/* cleanup_module is never called if registering failed */
 	unregister_chrdev_region(devno, 1);
+
+	// Frees and destroys the linked list
+//	kfree(LList);
 }
 
 
@@ -186,7 +235,7 @@ int scull_init_module(void)
 {
 	int result;
 	dev_t dev = 0;
-
+	
 	/*
 	 * Get a range of minor numbers to work with, asking for a dynamic
 	 * major unless directed otherwise at load time.

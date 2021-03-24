@@ -11,6 +11,7 @@
 #define CDEV_NAME "/dev/scull"
 
 /* Quantum command line option */
+;
 static int g_quantum;
 
 static void usage(const char *cmd)
@@ -24,7 +25,9 @@ static void usage(const char *cmd)
 	       "  Q          Qeuery quantum\n"
 	       "  X <int>    Exchange quantum\n"
 	       "  H <int>    Shift quantum\n"
-	       "  h          Print this message\n",
+	       "  h          Print this message\n"
+	       // Added thing to help message
+	       "  K	     Custom new quantum thing\n",
 	       cmd);
 }
 
@@ -57,6 +60,8 @@ static cmd_t parse_arguments(int argc, const char **argv)
 	case 'R':
 	case 'G':
 	case 'Q':
+	// Added case K
+	case 'K':
 	case 'h':
 		break;
 	default:
@@ -70,11 +75,12 @@ ret:
 		exit((cmd == 'h')? EXIT_SUCCESS : EXIT_FAILURE);
 	}
 	return cmd;
-}
+};
 
 static int do_op(int fd, cmd_t cmd)
 {
 	int ret, q;
+	struct task_info t;
 
 	switch (cmd) {
 	case 'R':
@@ -109,6 +115,12 @@ static int do_op(int fd, cmd_t cmd)
 		if (ret == 0)
 			printf("Quantum exchanged, old quantum: %d\n", q);
 		break;
+	case 'K':
+		// Added custom case K
+		ret = ioctl(fd, SCULL_IOCKQUANTUM, &t);
+		if(ret == 0)
+			printf("Quantum: %d\n", ret);
+		break;
 	case 'H':
 		q = ioctl(fd, SCULL_IOCHQUANTUM, g_quantum);
 		printf("Quantum shifted, old quantum: %d\n", q);
@@ -119,7 +131,7 @@ static int do_op(int fd, cmd_t cmd)
 		abort();
 		ret = -1; /* Keep the compiler happy */
 	}
-
+	
 	if (ret != 0)
 		perror("ioctl");
 	return ret;
