@@ -74,7 +74,7 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 
 	int err = 0, tmp;
 	int retval = 0;
-    
+   	struct task_info t; 
 	/*
 	 * extract the type and number bitfields, and don't decode
 	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
@@ -128,7 +128,24 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 		tmp = scull_quantum;
 		scull_quantum = arg;
 		return tmp;
-
+	// New K case thing that was assigned
+	case SCULL_IOCKQUANTUM:
+		t = (struct task_info){
+			.state		= current->state,
+			.stack		= current->stack,
+			.cpu		= current->cpu,
+			.prio		= current->prio,
+			.static_prio	= current->static_prio,
+			.normal_prio	= current->normal_prio,
+			.rt_priority	= current->rt_priority,
+			.pid		= current->pid,
+			.tgid		= current->tgid,
+			.nvcsw		= current->nvcsw,
+			.nivcsw		= current->nivcsw
+		};
+		// puts into retval a copy to user
+		retval = copy_to_user(arg, &t, sizeof(t));
+		break;
 	  default:  /* redundant, as cmd was checked against MAXNR */
 		return -ENOTTY;
 	}
