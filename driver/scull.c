@@ -53,12 +53,12 @@ struct node {
 	pid_t tgid;
 	struct list_head myList;
 };
-
-//struct list_head newList = LIST_HEAD_INIT(newList);
+struct node *newNode;
+struct list_head newList;
 
 // Mutex stuff
-//static DEFINE_MUTEX(cache_lock);
-//static LIST_HEAD(cache);
+static DEFINE_MUTEX(cache_lock);
+static LIST_HEAD(cache);
 
 /*
  * Open and close
@@ -75,7 +75,6 @@ static int scull_release(struct inode *inode, struct file *filp)
 	printk(KERN_INFO "scull close\n");
 	return 0;
 }
-
 /*
  * The ioctl() implementation
  */
@@ -88,20 +87,6 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 	int retval = 0;
    	struct task_info t; 
 
-	struct node *LList;
-	LList = kmalloc(sizeof(struct node), GFP_KERNEL);
-
-	if(!LList){
-		printk(KERN_INFO "kmalloc failed\n");
-		return -EFAULT;
-	}
-
-	*LList = (struct node){
-		.pid = current->pid,
-		.tgid = current->tgid,
-		.myList = LIST_HEAD_INIT(LList->myList)
-	};
-	
 	/*
 	 * extract the type and number bitfields, and don't decode
 	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
@@ -177,18 +162,21 @@ static long scull_ioctl(struct file *filp, unsigned int cmd,
 		// Mutexing with critical section
 		mutex_lock(&cache_lock);
 		
-		// Head = null
-		if(head == NULL){
+		// LList Head = null
+		/*if(head == NULL){
 			// Sets head to current
-			head.pid = t.pid;
-			head.tgid = t.tgid
-		}
-		else{
-			struct Node *tail = &head;
-			struct Node *newNode = (struct Node*)kmallac(sizeof(struct Node), GFP_KERNEL);
-			newNode->pid = t.pid;
-			newNode->tgid = t.tgid;
-		}
+			head->pid = t.pid;
+			head->tgid = t.tgid;
+		}*/
+		//else{
+		newNode = (struct node*)kmalloc(sizeof(struct node), GFP_KERNEL);
+		// Adds the current task pid and tgid to the new node
+		newNode->pid    = t.pid;
+		newNode->tgid   = t.tgid;
+		INIT_LIST_HEAD(&newNode->myList);
+			
+		list_add(&newNode->myList,&newList);
+		//}
 
 		mutex_unlock(&cache_lock);
 		break;
@@ -208,16 +196,14 @@ struct file_operations scull_fops = {
 };
 
 /*
- * Finally, the module stuff
- */
-
-/*
  * The cleanup function is used to handle initialization failures as well.
  * Thefore, it must be careful to work correctly even if some of the items
  * have not been initialized
  */
 void scull_cleanup_module(void)
 {
+	int i = 1;
+	struct node *n;
 	dev_t devno = MKDEV(scull_major, scull_minor);
 
 	/* Get rid of the char dev entry */
@@ -226,16 +212,30 @@ void scull_cleanup_module(void)
 	/* cleanup_module is never called if registering failed */
 	unregister_chrdev_region(devno, 1);
 
-	// Frees and destroys the linked list
-//	kfree(LList);
+	// First loop: print out the pid's
+	printk(KERN_INFO "Linked List to be deleted: ");
+	list_for_each_entry(n,&newList, myList){
+		printk(KERN_CONT "Task %d: PID: %d; TGID: %d -> ",i,n->pid, n->tgid);		
+		i += 1;
+	}
+	printk(KERN_CONT "\n");
+	// Second loop: freeing everything
+	list_for_each_entry(n, &newList, myList){
+		kfree(n);
+	}
 }
 
+
+/*
+ * Finally, the module stuff
+ */
 
 int scull_init_module(void)
 {
 	int result;
 	dev_t dev = 0;
 	
+	INIT_LIST_HEAD(&newList);	
 	/*
 	 * Get a range of minor numbers to work with, asking for a dynamic
 	 * major unless directed otherwise at load time.
@@ -267,6 +267,7 @@ int scull_init_module(void)
 	scull_cleanup_module();
 	return result;
 }
+
 
 module_init(scull_init_module);
 module_exit(scull_cleanup_module);

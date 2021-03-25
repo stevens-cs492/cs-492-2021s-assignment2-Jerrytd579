@@ -76,6 +76,8 @@ struct task_info{
 // Defining the SCULL_IOCKQUANTUM thing
 #define SCULL_IOCKQUANTUM _IOR(SCULL_IOC_MAGIC, 7, struct task_info)
 /* ... more to come */
+//#define SCULL_IOCPQUANTUM _IOR(SCULL_IOC_MAGIC, 8, int)
+//#define SCULL_IOCTQUANTUM _IOR(SCULL_IOC_MAGIC, 9, int)
 
 #define SCULL_IOC_MAXNR 7
 
